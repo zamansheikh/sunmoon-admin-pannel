@@ -1,0 +1,37 @@
+name: Deploy to VPS
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up SSH
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      - name: Deploy to VPS
+        run: |
+          ssh -o StrictHostKeyChecking=no root@178.128.26.45 "
+            # source ~/.nvm/nvm.sh &&
+            # nvm use 20.19.5 &&
+            cd /var/www/admin_pannel &&
+            git stash &&
+            git pull origin main &&
+            npm install &&
+            npm run build &&
+            if tmux has-session -t admin_pannel 2>/dev/null; then
+              echo \"Already session running: admin_pannel. Killing it...\"
+              tmux kill-session -t admin_pannel
+            fi &&
+            echo \"Starting new session: admin_pannel\" &&
+            tmux new-session -d -s admin_pannel 'npm start -- -p 3004' &&
+            echo \"Successfully started 'npm start -- -p 3004' in tmux session admin_pannel\"
+          "

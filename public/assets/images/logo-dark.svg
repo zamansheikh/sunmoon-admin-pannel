@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 36" width="180" height="36">
+  <!-- Mic icon -->
+  <circle cx="14" cy="14" r="13" fill="#4f8fef"/>
+  <rect x="10" y="6" width="8" height="12" rx="4" fill="white"/>
+  <path d="M6 14a8 8 0 0 0 16 0" stroke="white" stroke-width="1.8" fill="none" stroke-linecap="round"/>
+  <line x1="14" y1="22" x2="14" y2="26" stroke="white" stroke-width="1.8" stroke-linecap="round"/>
+  <line x1="10" y1="26" x2="18" y2="26" stroke="white" stroke-width="1.8" stroke-linecap="round"/>
+  <!-- Text -->
+  <text x="32" y="24" font-family="'Segoe UI', sans-serif" font-weight="700" font-size="15" fill="#ffffff">AddaVoice</text>
+  <text x="126" y="24" font-family="'Segoe UI', sans-serif" font-weight="700" font-size="15" fill="#adb5bd">Room</text>
+</svg>

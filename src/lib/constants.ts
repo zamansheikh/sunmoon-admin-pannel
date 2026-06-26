@@ -1,0 +1,9 @@
+export const PROJECT_NAME = process.env.NEXT_PUBLIC_PROJECT_NAME || "AddaLive";
+export const APP_LOGO = process.env.NEXT_PUBLIC_APP_LOGO || "/brand/addalive-logo.png";
+export const PLAYSTORE_URL = process.env.NEXT_PUBLIC_PLAYSTORE_URL || "https://play.google.com/store/apps/details?id=com.addavoicerom.addalive";
+export const APP_STORE_URL = process.env.NEXT_PUBLIC_APP_STORE_URL || "https://apps.apple.com/app/AddaLive";
+export const ANDROID_PACKAGE = process.env.NEXT_PUBLIC_ANDROID_PACKAGE || "com.addavoicerom.addalive";
+export const WEBSITE_URL = process.env.NEXT_PUBLIC_WEBSITE_URL || "https://addavoicerom.com";
+export const WEBSITE_DOMAIN = process.env.NEXT_PUBLIC_WEBSITE_DOMAIN || "addavoicerom.com";
+export const SUPPORT_EMAIL = process.env.NEXT_PUBLIC_SUPPORT_EMAIL || "support@addalive.com";
+export const SUPPORT_WHATSAPP = process.env.NEXT_PUBLIC_SUPPORT_WHATSAPP || "+1234567890";

@@ -1,0 +1,80 @@
+/* Template CSS is loaded via <link> tags in layout.tsx */
+
+/* ── BrandLogo ── */
+
+/* "Room" text: dark on light sidebar, light on dark sidebar */
+.brand-room {
+  color: #6c757d;
+}
+
+/* dark sidebar / dark menu-color / dark theme → lighter Room text */
+[data-menu-color="dark"] .brand-room,
+[data-bs-theme="dark"] .brand-room {
+  color: #adb5bd;
+}
+
+/* Sidebar logo area: match topbar height so the icon is vertically centred */
+.sidenav-menu .logo {
+  display: flex !important;
+  align-items: center;
+  height: var(--ct-topbar-height, 85px) !important;
+  padding: 0 20px;
+}
+
+/* Condensed sidebar — icon-only: centre the MicCircle in the narrow rail */
+[data-sidenav-size="condensed"] .sidenav-menu .logo {
+  justify-content: center;
+  padding: 0;
+}
+
+
+/* Topbar logo visibility on mobile */
+@media (max-width: 767.98px) {
+  .app-topbar .logo {
+    display: flex !important;
+    align-items: center;
+    width: auto !important;
+    padding-right: 10px;
+  }
+  .app-topbar .logo .logo-lg {
+    display: none !important;
+  }
+  .app-topbar .logo .logo-sm {
+    display: flex !important;
+  }
+  
+  /* Ensure the correct logo variant is visible based on topbar color */
+  [data-topbar-color="light"] .app-topbar .logo .logo-dark,
+  [data-topbar-color="dark"] .app-topbar .logo .logo-light {
+    display: flex !important;
+  }
+  [data-topbar-color="light"] .app-topbar .logo .logo-light,
+  [data-topbar-color="dark"] .app-topbar .logo .logo-dark {
+    display: none !important;
+  }
+  
+  /* Fix mobile sidebar close button alignment — centre it in the logo bar */
+  .button-close-fullsidebar {
+    position: absolute !important;
+    top: calc(var(--ct-topbar-height, 70px) / 2) !important;
+    transform: translateY(-50%) !important;
+    right: 14px !important;
+  }
+
+  /* Prevent topbar from overflowing on small screens */
+  .app-topbar .topbar-menu {
+    overflow: hidden;
+  }
+  .app-topbar .topbar-search {
+    display: none !important;
+  }
+
+  /* Notification dropdown: keep within viewport on mobile */
+  .dropdown-menu-lg {
+    width: calc(100vw - 20px) !important;
+    max-width: calc(100vw - 20px) !important;
+    left: auto !important;
+    right: 0 !important;
+  }
+}
+

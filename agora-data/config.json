@@ -1,0 +1,8 @@
+{
+  "agoraAppId": "b9f948b99b1e4d65b380f73e4b6a1d63",
+  "agoraAppCertificate": "f20146bc18834b7591bad96977aa5554",
+  "defaultChannelName": "verified-channel",
+  "defaultUid": "0",
+  "defaultRole": "publisher",
+  "defaultExpireTime": 3600
+}

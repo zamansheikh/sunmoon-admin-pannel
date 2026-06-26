@@ -1,0 +1,16 @@
+[
+  {
+    "relation": [
+      "delegate_permission/common.handle_all_urls"
+    ],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.addavoicerom.addalive",
+      "sha256_cert_fingerprints": [
+        "EB:7B:BA:C0:DC:09:A4:88:E4:C8:94:52:08:29:14:BC:B7:4B:C8:DA:2A:CC:66:20:AA:A9:5A:42:88:58:E9:4F",
+        "AB:89:21:D7:0F:D4:CA:E5:24:B2:B1:0A:B3:32:98:18:67:03:D8:25:57:C1:CF:C0:45:90:EC:E1:3C:15:2C:35",
+        "6C:B3:6E:6D:20:DB:E0:AC:D9:00:5C:A9:01:4D:8F:A7:6F:BD:FB:B6:A2:D6:96:18:D2:A4:93:9E:D3:02:99:17"
+      ]
+    }
+  }
+]
