@@ -21,13 +21,13 @@ jobs:
         run: |
           ssh -o StrictHostKeyChecking=no root@88.222.213.235 "
             export PATH=/root/.nvm/versions/node/v20.19.5/bin:\$PATH &&
-            cd /var/www/sunmoon_admin_pannel &&
+            cd /var/www/sunmoon-admin-pannel &&
             git stash &&
             GIT_SSH_COMMAND=\"ssh -i ~/.ssh/id_ed25519_deploy\" git pull origin main &&
             npm install &&
             npm run build &&
-            pm2 delete sunmoon_admin_pannel || true &&
-            pm2 start npm --name sunmoon_admin_pannel -- start &&
+            pm2 delete sunmoon-admin-pannel || true &&
+            pm2 start npm --name sunmoon-admin-pannel -- start &&
             pm2 save &&
-            echo \"Successfully (re)started sunmoon_admin_pannel on port 3005 via pm2\"
+            echo \"Successfully (re)started sunmoon-admin-pannel on port 3005 via pm2\"
           "
