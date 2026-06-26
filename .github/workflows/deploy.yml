@@ -26,11 +26,8 @@ jobs:
             GIT_SSH_COMMAND=\"ssh -i ~/.ssh/id_ed25519_deploy\" git pull origin main &&
             npm install &&
             npm run build &&
-            if tmux has-session -t sunmoon_admin_pannel 2>/dev/null; then
-              echo \"Already session running: sunmoon_admin_pannel. Killing it...\"
-              tmux kill-session -t sunmoon_admin_pannel
-            fi &&
-            echo \"Starting new session: sunmoon_admin_pannel\" &&
-            tmux new-session -d -s sunmoon_admin_pannel 'npm start -- -p 3005' &&
-            echo \"Successfully started 'npm start -- -p 3005' in tmux session sunmoon_admin_pannel\"
+            pm2 delete sunmoon_admin_pannel || true &&
+            pm2 start npm --name sunmoon_admin_pannel -- start &&
+            pm2 save &&
+            echo \"Successfully (re)started sunmoon_admin_pannel on port 3005 via pm2\"
           "
