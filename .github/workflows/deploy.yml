@@ -29,5 +29,5 @@ jobs:
             pm2 delete sunmoon-admin-pannel || true &&
             pm2 start npm --name sunmoon-admin-pannel -- start &&
             pm2 save &&
-            echo \"Successfully (re)started sunmoon-admin-pannel on port 3005 via pm2\"
+            echo \"Successfully (re)started sunmoon-admin-pannel on port 3004 via pm2\"
           "
