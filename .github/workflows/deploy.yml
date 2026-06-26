@@ -19,19 +19,18 @@ jobs:
 
       - name: Deploy to VPS
         run: |
-          ssh -o StrictHostKeyChecking=no root@178.128.26.45 "
-            # source ~/.nvm/nvm.sh &&
-            # nvm use 20.19.5 &&
-            cd /var/www/admin_pannel &&
+          ssh -o StrictHostKeyChecking=no root@88.222.213.235 "
+            export PATH=/root/.nvm/versions/node/v20.19.5/bin:\$PATH &&
+            cd /var/www/sunmoon_admin_pannel &&
             git stash &&
-            git pull origin main &&
+            GIT_SSH_COMMAND=\"ssh -i ~/.ssh/id_ed25519_deploy\" git pull origin main &&
             npm install &&
             npm run build &&
-            if tmux has-session -t admin_pannel 2>/dev/null; then
-              echo \"Already session running: admin_pannel. Killing it...\"
-              tmux kill-session -t admin_pannel
+            if tmux has-session -t sunmoon_admin_pannel 2>/dev/null; then
+              echo \"Already session running: sunmoon_admin_pannel. Killing it...\"
+              tmux kill-session -t sunmoon_admin_pannel
             fi &&
-            echo \"Starting new session: admin_pannel\" &&
-            tmux new-session -d -s admin_pannel 'npm start -- -p 3004' &&
-            echo \"Successfully started 'npm start -- -p 3004' in tmux session admin_pannel\"
+            echo \"Starting new session: sunmoon_admin_pannel\" &&
+            tmux new-session -d -s sunmoon_admin_pannel 'npm start -- -p 3005' &&
+            echo \"Successfully started 'npm start -- -p 3005' in tmux session sunmoon_admin_pannel\"
           "
