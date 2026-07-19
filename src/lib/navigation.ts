@@ -32,6 +32,7 @@ export const navigation: NavEntry[] = [
       { title: "App User",         href: "/admin/users/all" },
       { title: "Active App User",  href: "/admin/users/online" },
       { title: "Banned Users",     href: "/admin/users/banned" },
+      { title: "Medals",           href: "/admin/users/medals" },
     ],
   },
 
