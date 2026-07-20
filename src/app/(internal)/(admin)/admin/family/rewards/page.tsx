@@ -1,18 +1,19 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   getFamilyRewardConfigs,
   createFamilyRewardConfig,
   updateFamilyRewardConfig,
   deleteFamilyRewardConfig,
-  getAllStoreItems,
+  browseStoreItems,
   FamilyRewardConfig,
   StoreItem,
 } from "@/lib/api";
 import { PROJECT_NAME } from "@/lib/constants";
 
 type Flash = { type: "success" | "danger"; text: string } | null;
+type CategorizedItems = Record<string, StoreItem[]>;
 
 interface RewardItemRow {
   itemId: string;
@@ -27,18 +28,30 @@ const formatDate = (iso?: string) => {
   try { return new Date(iso).toLocaleDateString(); } catch { return iso; }
 };
 
+const PLACEHOLDER_IMG = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='28' fill='%23adb5bd'%3E%3Crect width='28' height='28' rx='4' fill='%23e9ecef'/%3E%3Cpath d='M8 20l4-5 3 4 4-6 5 7H3z' fill='%23ced4da'/%3E%3Ccircle cx='10' cy='10' r='2' fill='%23ced4da'/%3E%3C/svg%3E";
+
 export default function FamilyRewardRankingsPage() {
   const [configs, setConfigs] = useState<FamilyRewardConfig[]>([]);
   const [loading, setLoading] = useState(false);
   const [flash, setFlash] = useState<Flash>(null);
-
-  const [storeItems, setStoreItems] = useState<StoreItem[]>([]);
 
   const [modalOpen, setModalOpen] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [modalError, setModalError] = useState("");
   const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  // Per-row store item cache: row index → categorized items
+  const [itemsByRow, setItemsByRow] = useState<Record<number, CategorizedItems>>({});
+  const [itemsLoading, setItemsLoading] = useState<Record<number, boolean>>({});
+
+  // Custom dropdown state
+  const [openDropdownRow, setOpenDropdownRow] = useState<number | null>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Popover state for item details
+  const [openPopoverId, setOpenPopoverId] = useState<string | null>(null);
+  const popoverRef = useRef<HTMLDivElement>(null);
 
   // Form state
   const [label, setLabel] = useState("");
@@ -60,16 +73,45 @@ export default function FamilyRewardRankingsPage() {
     }
   }, []);
 
-  const loadStoreItems = useCallback(async () => {
+  useEffect(() => { loadConfigs(); }, [loadConfigs]);
+
+  // Click-outside handler for custom dropdown
+  useEffect(() => {
+    if (openDropdownRow === null) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setOpenDropdownRow(null);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [openDropdownRow]);
+
+  // Click-outside handler for item popover
+  useEffect(() => {
+    if (openPopoverId === null) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (popoverRef.current && !popoverRef.current.contains(e.target as Node)) {
+        setOpenPopoverId(null);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [openPopoverId]);
+
+  // Fetch store items for a specific row based on its exclusive flag
+  const fetchItemsForRow = useCallback(async (rowIndex: number, isExclusive: boolean) => {
+    setItemsLoading((prev) => ({ ...prev, [rowIndex]: true }));
     try {
-      setStoreItems(await getAllStoreItems());
-    } catch {
-      // Silently fail — dropdown will just be empty
+      // exclusive ON → canUserBuyThis=false (exclusive/grant-only items)
+      const data = await browseStoreItems(!isExclusive);
+      setItemsByRow((prev) => ({ ...prev, [rowIndex]: data }));
+    } catch (e: unknown) {
+      setFlash({ type: "danger", text: e instanceof Error ? e.message : "Failed to load store items" });
+    } finally {
+      setItemsLoading((prev) => ({ ...prev, [rowIndex]: false }));
     }
   }, []);
-
-  useEffect(() => { loadConfigs(); }, [loadConfigs]);
-  useEffect(() => { loadStoreItems(); }, [loadStoreItems]);
 
   const openCreate = () => {
     setEditId(null);
@@ -80,7 +122,10 @@ export default function FamilyRewardRankingsPage() {
     setStartRank("");
     setEndRank("");
     setRewardItems([emptyItemRow()]);
+    setItemsByRow({});
+    setItemsLoading({});
     setModalError("");
+    setOpenDropdownRow(null);
     setModalOpen(true);
   };
 
@@ -99,22 +144,44 @@ export default function FamilyRewardRankingsPage() {
       setStartRank("");
       setEndRank("");
     }
-    setRewardItems(
+    const rows: RewardItemRow[] =
       cfg.items.length > 0
         ? cfg.items.map((i) => ({ itemId: i.itemId, duration: String(i.duration), isExclusive: i.isExclusive }))
-        : [emptyItemRow()]
-    );
+        : [emptyItemRow()];
+    setRewardItems(rows);
+    setItemsByRow({});
+    setItemsLoading({});
     setModalError("");
+    setOpenDropdownRow(null);
     setModalOpen(true);
   };
 
-  const closeModal = () => { setModalOpen(false); setSaving(false); };
+  const closeModal = () => {
+    setModalOpen(false);
+    setSaving(false);
+    setItemsByRow({});
+    setItemsLoading({});
+    setOpenDropdownRow(null);
+  };
 
   const updateItemRow = (index: number, field: keyof RewardItemRow, value: string | boolean) => {
-    setRewardItems((prev) => prev.map((r, i) => (i === index ? { ...r, [field]: value } : r)));
+    setRewardItems((prev) => {
+      const next = prev.map((r, i) => (i === index ? { ...r, [field]: value } : r));
+      // If exclusive toggle changed, clear selected itemId and cached items for this row
+      if (field === "isExclusive" && prev[index].isExclusive !== value) {
+        next[index].itemId = "";
+        setItemsByRow((prev2) => {
+          const copy = { ...prev2 };
+          delete copy[index];
+          return copy;
+        });
+      }
+      return next;
+    });
   };
 
   const addItemRow = () => setRewardItems((prev) => [...prev, emptyItemRow()]);
+
   const removeItemRow = (index: number) => {
     if (rewardItems.length <= 1) return;
     setRewardItems((prev) => prev.filter((_, i) => i !== index));
@@ -201,9 +268,100 @@ export default function FamilyRewardRankingsPage() {
     return cfg.rank != null ? `#${cfg.rank}` : "—";
   };
 
-  const getItemName = (itemId: string) => {
-    const item = storeItems.find((i) => i._id === itemId);
-    return item?.name || itemId;
+  const toggleDropdown = useCallback((rowIndex: number, isExclusive: boolean) => {
+    if (openDropdownRow === rowIndex) {
+      setOpenDropdownRow(null);
+      return;
+    }
+    setOpenDropdownRow(rowIndex);
+    // Lazy fetch if not loaded
+    if (!itemsByRow[rowIndex]) {
+      fetchItemsForRow(rowIndex, isExclusive);
+    }
+  }, [openDropdownRow, itemsByRow, fetchItemsForRow]);
+
+  const selectItem = (rowIndex: number, itemId: string) => {
+    setRewardItems((prev) => prev.map((r, i) => (i === rowIndex ? { ...r, itemId } : r)));
+    setOpenDropdownRow(null);
+  };
+
+  const renderDropdown = (rowIndex: number, value: string, isExclusive: boolean) => {
+    const categorized = itemsByRow[rowIndex] ?? {};
+    const isLoading = itemsLoading[rowIndex] ?? false;
+    const categories = Object.keys(categorized);
+    const isOpen = openDropdownRow === rowIndex;
+
+    // Find selected item name
+    let selectedName = "";
+    for (const items of Object.values(categorized)) {
+      const found = items.find((i) => i._id === value);
+      if (found) { selectedName = found.name; break; }
+    }
+
+    return (
+      <div className="position-relative" ref={isOpen ? dropdownRef : undefined}>
+        <div
+          className={`form-select form-select-sm ${isOpen ? "shadow" : ""}`}
+          style={{ cursor: "pointer", minHeight: "31.5px" }}
+          onClick={() => toggleDropdown(rowIndex, isExclusive)}
+        >
+          {isLoading && !selectedName ? (
+            <span className="text-muted">Loading items…</span>
+          ) : selectedName ? (
+            <span>{selectedName}</span>
+          ) : (
+            <span className="text-muted">Select item…</span>
+          )}
+          <i className="ri-arrow-down-s-line position-absolute" style={{ right: "0.5rem", top: "50%", transform: "translateY(-50%)" }}></i>
+        </div>
+
+        {isOpen && (
+          <div
+            className="position-absolute w-100 mt-1 border rounded shadow-sm bg-white"
+            style={{ zIndex: 1050, maxHeight: "250px", overflowY: "auto" }}
+          >
+            {isLoading && categories.length === 0 ? (
+              <div className="d-flex align-items-center justify-content-center py-3 text-muted fs-13">
+                <div className="spinner-border spinner-border-sm me-2" role="status" />
+                Loading items…
+              </div>
+            ) : categories.length === 0 ? (
+              <div className="text-center py-3 text-muted fs-13">No items available</div>
+            ) : (
+              categories.map((cat) => {
+                const items = categorized[cat];
+                if (!items || items.length === 0) return null;
+                return (
+                  <div key={cat}>
+                    <div className="fw-bold fs-12 text-muted px-2 py-1" style={{ background: "#f8f9fa" }}>{cat}</div>
+                    {items.map((item) => (
+                      <div
+                        key={item._id}
+                        className={`d-flex align-items-center gap-2 px-2 py-1 ${value === item._id ? "bg-primary-subtle" : ""}`}
+                        style={{ cursor: "pointer", transition: "background 0.1s" }}
+                        onMouseEnter={(e) => { if (value !== item._id) e.currentTarget.classList.add("bg-light"); }}
+                        onMouseLeave={(e) => { if (value !== item._id) e.currentTarget.classList.remove("bg-light"); }}
+                        onClick={() => selectItem(rowIndex, item._id)}
+                      >
+                        <img
+                          src={item.previewFile || item.logo || PLACEHOLDER_IMG}
+                          alt={item.name}
+                          width={28}
+                          height={28}
+                          style={{ objectFit: "contain", borderRadius: 4, flexShrink: 0 }}
+                          onError={(e) => { (e.target as HTMLImageElement).src = PLACEHOLDER_IMG; }}
+                        />
+                        <span className="fs-13 text-truncate">{item.name}</span>
+                      </div>
+                    ))}
+                  </div>
+                );
+              })
+            )}
+          </div>
+        )}
+      </div>
+    );
   };
 
   return (
@@ -279,7 +437,54 @@ export default function FamilyRewardRankingsPage() {
                       <td><span className="badge bg-light text-dark">{getRankDisplay(cfg)}</span></td>
                       <td>{renderStars(cfg.starRating)}</td>
                       <td>
-                        <span className="badge bg-info-subtle text-info">{cfg.items.length} item{cfg.items.length !== 1 ? "s" : ""}</span>
+                        <div className="position-relative d-inline-block">
+                          <span
+                            className="badge bg-info-subtle text-info"
+                            style={{ cursor: "pointer" }}
+                            onClick={() => setOpenPopoverId(openPopoverId === cfg._id ? null : cfg._id)}
+                          >
+                            <i className="ri-gift-line me-1"></i>
+                            {cfg.items.length} item{cfg.items.length !== 1 ? "s" : ""}
+                          </span>
+                          {openPopoverId === cfg._id && (
+                            <div
+                              ref={popoverRef}
+                              className="position-absolute border rounded shadow-sm bg-white mt-1"
+                              style={{ zIndex: 1050, width: "280px", maxHeight: "200px", overflowY: "auto", left: 0 }}
+                            >
+                              {cfg.items.length === 0 ? (
+                                <div className="text-center py-3 text-muted fs-13">No items</div>
+                              ) : (
+                                cfg.items.map((item, i) => {
+                                  const populated = typeof item.itemId === "object" && item.itemId !== null
+                                    ? item.itemId as { _id: string; name: string; previewFile?: string; logo?: string }
+                                    : null;
+                                  const itemName = item.itemName || populated?.name || String(item.itemId);
+                                  const itemImage = item.itemImage || populated?.previewFile || populated?.logo;
+                                  return (
+                                    <div key={i} className="d-flex align-items-center gap-2 px-2 py-1 border-bottom">
+                                      <img
+                                        src={itemImage || PLACEHOLDER_IMG}
+                                        alt={itemName}
+                                        width={28}
+                                        height={28}
+                                        style={{ objectFit: "contain", borderRadius: 4, flexShrink: 0 }}
+                                        onError={(e) => { (e.target as HTMLImageElement).src = PLACEHOLDER_IMG; }}
+                                      />
+                                      <div className="flex-grow-1 min-width-0">
+                                        <div className="fs-13 fw-medium text-truncate">{itemName}</div>
+                                        <div className="d-flex gap-1 align-items-center">
+                                          <span className="badge bg-light text-dark fs-11">{item.duration}d</span>
+                                          {item.isExclusive && <span className="badge bg-warning-subtle text-warning fs-11">Exclusive</span>}
+                                        </div>
+                                      </div>
+                                    </div>
+                                  );
+                                })
+                              )}
+                            </div>
+                          )}
+                        </div>
                       </td>
                       <td className="fs-13 text-muted">{formatDate(cfg.createdAt)}</td>
                       <td className="text-center">
@@ -381,13 +586,7 @@ export default function FamilyRewardRankingsPage() {
                   <div key={idx} className="row g-2 mb-2 align-items-end">
                     <div className="col-md-6">
                       {idx === 0 && <label className="form-label fs-13">Store Item</label>}
-                      <select className="form-select form-select-sm" value={row.itemId}
-                        onChange={(e) => updateItemRow(idx, "itemId", e.target.value)}>
-                        <option value="">Select item…</option>
-                        {storeItems.map((item) => (
-                          <option key={item._id} value={item._id}>{item.name}</option>
-                        ))}
-                      </select>
+                      {renderDropdown(idx, row.itemId, row.isExclusive)}
                     </div>
                     <div className="col-md-3">
                       {idx === 0 && <label className="form-label fs-13">Duration (days)</label>}

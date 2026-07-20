@@ -1887,10 +1887,22 @@ export async function updateFamilySupportReward(
   return data.result;
 }
 
-// ─── Store Items (flat list for dropdowns) ───────────────────────────────────
+// ─── Store Items (browse API) ────────────────────────────────────────────────
 
-/** GET /api/store/items?limit=500 – fetch all store items for dropdowns. */
-export async function getAllStoreItems(): Promise<StoreItem[]> {
-  const data = await authFetch<{ result: StoreItem[] }>("/api/store/items?limit=500");
-  return Array.isArray(data.result) ? data.result : [];
+/** GET /api/store/items/browse?canUserBuyThis=bool – items grouped by category. */
+export async function browseStoreItems(
+  canUserBuyThis: boolean
+): Promise<Record<string, StoreItem[]>> {
+  const token = getToken();
+  const res = await fetch(
+    `${API_BASE}/api/store/items/browse?canUserBuyThis=${canUserBuyThis}`,
+    { headers: token ? { Authorization: `Bearer ${token}` } : {} }
+  );
+  if (res.status === 401) {
+    _forceLogout();
+    throw new Error("Session expired — please sign in again");
+  }
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.message || "Failed to fetch store items");
+  return data.result ?? {};
 }
