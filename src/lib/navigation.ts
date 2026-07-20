@@ -93,6 +93,15 @@ export const navigation: NavEntry[] = [
     ],
   },
 
+  // Family
+  {
+    title: "Family", icon: "ri-team-line", id: "sidebarFamily",
+    children: [
+      { title: "Reward Rankings",   href: "/admin/family/rewards" },
+      { title: "Support Payouts",   href: "/admin/family/support-payouts" },
+    ],
+  },
+
   // Wallet & Finance
   {
     title: "Wallet & Finance", icon: "ri-wallet-3-line", id: "sidebarWallet",

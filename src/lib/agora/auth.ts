@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { BACKEND_URL } from "@/lib/config";
 
 interface UpstreamUser {
   _id?: string;
@@ -15,7 +16,7 @@ const CACHE_TTL_MS = 30_000;
 const cache = new Map<string, CacheEntry>();
 
 export function backendBaseUrl(): string {
-  return process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+  return BACKEND_URL;
 }
 
 export function extractBearer(req: NextRequest): string | null {

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import http from "http";
 import https from "https";
+import { BACKEND_URL } from "@/lib/config";
 
 export const runtime = "nodejs";
 
@@ -12,7 +13,7 @@ export const runtime = "nodejs";
 // passing through the caller's Authorization header. No backend change needed.
 
 function backendBaseUrl(): string {
-  return process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+  return BACKEND_URL;
 }
 
 export async function GET(req: NextRequest) {

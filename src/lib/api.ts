@@ -1780,3 +1780,117 @@ export async function runRetroactiveMedalAward(): Promise<RetroactiveAwardResult
   );
   return data.result;
 }
+
+// ─── Family Rewards ──────────────────────────────────────────────────────────
+
+export interface FamilyRewardItem {
+  itemId: string;
+  duration: number;
+  isExclusive: boolean;
+}
+
+export interface FamilyRewardConfig {
+  _id: string;
+  rank?: number;
+  startRank?: number;
+  endRank?: number;
+  items: (FamilyRewardItem & { itemName?: string; itemImage?: string })[];
+  starRating: number;
+  label: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** GET /api/family-rewards/admin – list all reward configs. */
+export async function getFamilyRewardConfigs(): Promise<FamilyRewardConfig[]> {
+  const data = await authFetch<{ result: FamilyRewardConfig[] }>("/api/family-rewards/admin");
+  return Array.isArray(data.result) ? data.result : [];
+}
+
+/** POST /api/family-rewards/admin – create a reward config. */
+export async function createFamilyRewardConfig(payload: {
+  rank?: number;
+  startRank?: number;
+  endRank?: number;
+  items: { itemId: string; duration: number; isExclusive: boolean }[];
+  starRating: number;
+  label: string;
+}): Promise<FamilyRewardConfig> {
+  const data = await authFetch<{ result: FamilyRewardConfig }>("/api/family-rewards/admin", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+  return data.result;
+}
+
+/** PUT /api/family-rewards/admin/:id – update a reward config. */
+export async function updateFamilyRewardConfig(
+  id: string,
+  payload: Partial<{
+    rank: number;
+    startRank: number;
+    endRank: number;
+    items: { itemId: string; duration: number; isExclusive: boolean }[];
+    starRating: number;
+    label: string;
+  }>
+): Promise<FamilyRewardConfig> {
+  const data = await authFetch<{ result: FamilyRewardConfig }>(`/api/family-rewards/admin/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  });
+  return data.result;
+}
+
+/** DELETE /api/family-rewards/admin/:id – delete a reward config. */
+export async function deleteFamilyRewardConfig(id: string): Promise<void> {
+  await authFetch(`/api/family-rewards/admin/${id}`, { method: "DELETE" });
+}
+
+// ─── Family Support Rewards ──────────────────────────────────────────────────
+
+export interface FamilySupportReward {
+  level: number;
+  targetPoints: number;
+  totalBonus: number;
+  leaderCut: number;
+  top1Cut: number;
+  top2Cut: number;
+  top3Cut: number;
+  top4To10Cut: number;
+  top11To15Cut: number;
+  top16To20Cut: number;
+  minContributionRequired: number;
+}
+
+/** GET /api/admin/family-support-rewards – list all levels. */
+export async function getFamilySupportRewards(): Promise<FamilySupportReward[]> {
+  const data = await authFetch<{ result: FamilySupportReward[] }>("/api/admin/family-support-rewards");
+  return Array.isArray(data.result) ? data.result : [];
+}
+
+/** GET /api/admin/family-support-rewards/:level – get a single level. */
+export async function getFamilySupportRewardByLevel(level: number): Promise<FamilySupportReward> {
+  const data = await authFetch<{ result: FamilySupportReward }>(`/api/admin/family-support-rewards/${level}`);
+  return data.result;
+}
+
+/** PUT /api/admin/family-support-rewards/:level – update a level. */
+export async function updateFamilySupportReward(
+  level: number,
+  payload: Partial<Omit<FamilySupportReward, "level">>
+): Promise<FamilySupportReward> {
+  const data = await authFetch<{ result: FamilySupportReward }>(`/api/admin/family-support-rewards/${level}`, {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  });
+  return data.result;
+}
+
+// ─── Store Items (flat list for dropdowns) ───────────────────────────────────
+
+/** GET /api/store/items?limit=500 – fetch all store items for dropdowns. */
+export async function getAllStoreItems(): Promise<StoreItem[]> {
+  const data = await authFetch<{ result: StoreItem[] }>("/api/store/items?limit=500");
+  return Array.isArray(data.result) ? data.result : [];
+}
