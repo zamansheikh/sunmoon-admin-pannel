@@ -3,6 +3,8 @@
 // Never call the backend port directly from the browser (CORS).
 export const API_BASE = "";
 
+import { BACKEND_URL } from "@/lib/config";
+
 // ─── Stored User Type ──────────────────────────────────────────────────────────
 export interface AuthUser {
   _id: string;
@@ -1905,4 +1907,119 @@ export async function browseStoreItems(
   const data = await res.json();
   if (!res.ok) throw new Error(data.message || "Failed to fetch store items");
   return data.result ?? {};
+}
+
+// ─── SVIP Users by Tier ─────────────────────────────────────────────────────
+
+export interface SvipUser {
+  _id: string;
+  userId: { _id: string; name: string; avatar: string };
+  currentTier: number;
+  monthlyRechargeCoins: number;
+  tierStartOfMonth: number;
+  month: number;
+  year: number;
+}
+
+/** GET /api/svip/users?tier=N&page=N&limit=N – paginated users for a given SVIP tier. */
+export async function getSvipUsers(params: {
+  tier: number;
+  page?: number;
+  limit?: number;
+}): Promise<{ users: SvipUser[]; pagination: PaginationMeta }> {
+  if (!BACKEND_URL) {
+    alert("NEXT_PUBLIC_API_URL is not configured. Cannot fetch SVIP users.");
+    throw new Error("NEXT_PUBLIC_API_URL is not set");
+  }
+  const query = new URLSearchParams({
+    tier: String(params.tier),
+    page: String(params.page ?? 1),
+    limit: String(params.limit ?? 10),
+  });
+  const token = getToken();
+  const res = await fetch(
+    `${BACKEND_URL}/api/svip/users?${query.toString()}`,
+    { headers: token ? { Authorization: `Bearer ${token}` } : {} }
+  );
+  if (res.status === 401) {
+    _forceLogout();
+    throw new Error("Session expired — please sign in again");
+  }
+  const json = await res.json();
+  if (!res.ok) throw new Error(json.message || "Failed to fetch SVIP users");
+  const body = json.data ?? {};
+  return {
+    users: body.users ?? [],
+    pagination: body.pagination ?? {
+      total: 0, limit: params.limit ?? 10,
+      page: params.page ?? 1, totalPage: 0,
+    },
+  };
+}
+
+// ─── SVIP Config ───────────────────────────────────────────────────────────
+
+export interface SvipTierConfig {
+  tier: number;
+  milestoneCoins: number;
+  storeItemId?: string | null;
+}
+
+export interface SvipConfig {
+  tiers: SvipTierConfig[];
+  retentionThreshold: number;
+}
+
+/** GET /api/svip/config – fetch SVIP tier configuration. */
+export async function getSvipConfig(): Promise<SvipConfig> {
+  if (!BACKEND_URL) {
+    alert("NEXT_PUBLIC_API_URL is not configured.");
+    throw new Error("NEXT_PUBLIC_API_URL is not set");
+  }
+  const token = getToken();
+  const res = await fetch(`${BACKEND_URL}/api/svip/config`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
+  if (res.status === 401) {
+    _forceLogout();
+    throw new Error("Session expired — please sign in again");
+  }
+  const json = await res.json();
+  if (!res.ok) throw new Error(json.message || "Failed to fetch SVIP config");
+  const body = json.data ?? {};
+  return {
+    tiers: body.tiers ?? [],
+    retentionThreshold: body.retentionThreshold ?? 0.5,
+  };
+}
+
+/** PUT /api/svip/config – update SVIP tier configuration (full replace). */
+export async function updateSvipConfig(payload: {
+  tiers: { tier: number; milestoneCoins: number }[];
+  retentionThreshold?: number;
+}): Promise<SvipConfig> {
+  if (!BACKEND_URL) {
+    alert("NEXT_PUBLIC_API_URL is not configured.");
+    throw new Error("NEXT_PUBLIC_API_URL is not set");
+  }
+  const token = getToken();
+  const res = await fetch(`${BACKEND_URL}/api/svip/config`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: JSON.stringify(payload),
+  });
+  if (res.status === 401) {
+    _forceLogout();
+    throw new Error("Session expired — please sign in again");
+  }
+  const json = await res.json();
+  if (!res.ok) throw new Error(json.message || "Failed to update SVIP config");
+  const body = json.data ?? {};
+  return {
+    tiers: body.tiers ?? [],
+    retentionThreshold: body.retentionThreshold ?? 0.5,
+  };
 }

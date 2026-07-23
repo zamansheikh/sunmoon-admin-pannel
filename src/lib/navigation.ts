@@ -80,6 +80,8 @@ export const navigation: NavEntry[] = [
     title: "Premium Membership", icon: "ri-vip-crown-line", id: "sidebarPremium",
     children: [
       { title: "SVIP", href: "/admin/svip/manage" },
+      { title: "SVIP Config", href: "/admin/svip/config" },
+      { title: "SVIP Users", href: "/admin/svip/users" },
       { title: "VIP",  href: "/admin/svip/vip" },
     ],
   },

@@ -144,7 +144,7 @@ export default function AccountPage() {
         <h4 className="mb-0 fw-semibold">My Account</h4>
         <div className="page-title-right">
           <ol className="breadcrumb m-0">
-            <li className="breadcrumb-item"><a href="/dashboard">AddaLive</a></li>
+            <li className="breadcrumb-item"><a href="/dashboard">SunmoonPro</a></li>
             <li className="breadcrumb-item active">My Account</li>
           </ol>
         </div>
